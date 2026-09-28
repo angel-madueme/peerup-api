@@ -15,8 +15,19 @@ export class ApiError extends Error {
 
 export const notFound = (resource: string) => new ApiError(404, 'NOT_FOUND', `${resource} not found.`);
 
-const validationMessage = (error: ZodError) =>
-  error.issues.map((issue) => `${issue.path.join('.') || 'request'}: ${issue.message}`).join('; ');
+const issueDetail = (issue: ZodError['issues'][number]) => {
+  if (issue.code === 'too_small' && issue.minimum === 0) return 'must be 0 or greater.';
+  if (issue.code === 'too_small') return `must be at least ${issue.minimum}.`;
+  if (issue.code === 'invalid_type' && issue.input === undefined) return 'is required.';
+  if (issue.code === 'invalid_value' && 'values' in issue) return `must be one of: ${issue.values.join(', ')}.`;
+  return issue.message;
+};
+
+export const validationMessage = (error: ZodError, label: 'query parameter' | 'field' = 'field') =>
+  error.issues.map((issue) => {
+    const name = issue.path.join('.') || 'request';
+    return `Invalid ${label} '${name}': ${issueDetail(issue)}`;
+  }).join('; ');
 
 export const errorHandler: ErrorRequestHandler = (error, _request, response, _next) => {
   if (error instanceof ApiError) {

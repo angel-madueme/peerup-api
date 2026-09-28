@@ -1,16 +1,13 @@
 import type { NextFunction, Request, RequestHandler, Response } from 'express';
 import { ZodError, type ZodType } from 'zod';
-import { ApiError } from '../lib/errors.js';
-
-const issuesMessage = (error: ZodError) =>
-  error.issues.map((issue) => `${issue.path.join('.') || 'request'}: ${issue.message}`).join('; ');
+import { ApiError, validationMessage } from '../lib/errors.js';
 
 export const validateQuery = <T>(schema: ZodType<T>): RequestHandler => (request, _response, next) => {
   try {
     request.query = schema.parse(request.query) as typeof request.query;
     next();
   } catch (error) {
-    next(new ApiError(400, 'INVALID_QUERY', error instanceof ZodError ? issuesMessage(error) : 'Invalid query parameters.'));
+    next(new ApiError(400, 'INVALID_QUERY', error instanceof ZodError ? validationMessage(error, 'query parameter') : 'Invalid query parameters.'));
   }
 };
 
@@ -19,7 +16,7 @@ export const validateBody = <T>(schema: ZodType<T>): RequestHandler => (request,
     request.body = schema.parse(request.body) as typeof request.body;
     next();
   } catch (error) {
-    next(new ApiError(422, 'VALIDATION_ERROR', error instanceof ZodError ? issuesMessage(error) : 'Invalid request body.'));
+    next(new ApiError(422, 'VALIDATION_ERROR', error instanceof ZodError ? validationMessage(error) : 'Invalid request body.'));
   }
 };
 

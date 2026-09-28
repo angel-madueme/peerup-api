@@ -1,11 +1,11 @@
 import { z } from 'zod';
-import { paginationShape } from '../../lib/pagination.js';
+import { defaultedSort, paginationShape } from '../../lib/pagination.js';
 import { publicIdSchema } from '../../lib/public.js';
 
 export const bookingIdParamsSchema = z.object({ id: publicIdSchema });
 export const bookingListQuerySchema = z.object({
   ...paginationShape,
-  sort: z.enum(['createdAt', 'sessionStartTime']).default('createdAt'),
+  sort: defaultedSort(['createdAt', 'sessionStartTime'] as const, 'createdAt'),
   studentId: publicIdSchema.optional(),
   status: z.enum(['confirmed', 'cancelled']).optional(),
   when: z.enum(['upcoming', 'past']).optional(),

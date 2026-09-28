@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { paginationShape } from '../../lib/pagination.js';
+import { defaultedSort, paginationShape } from '../../lib/pagination.js';
 import { publicIdSchema } from '../../lib/public.js';
 
 const booleanQuery = z.preprocess((value) => value === 'true' ? true : value === 'false' ? false : value, z.boolean());
@@ -7,7 +7,7 @@ const booleanQuery = z.preprocess((value) => value === 'true' ? true : value ===
 export const studentIdParamsSchema = z.object({ id: publicIdSchema });
 export const studentListQuerySchema = z.object({
   ...paginationShape,
-  sort: z.enum(['name', 'createdAt']).default('createdAt'),
+  sort: defaultedSort(['name', 'createdAt'] as const, 'createdAt'),
   isTutor: booleanQuery.optional(),
   subjectId: publicIdSchema.optional(),
 });
