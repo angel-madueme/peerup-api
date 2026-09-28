@@ -3,6 +3,7 @@ import { prisma } from '../../lib/prisma.js';
 import { listMeta } from '../../lib/pagination.js';
 import { notFound } from '../../lib/errors.js';
 import { validatedParams, validatedQuery } from '../../lib/validated.js';
+import { withPrismaRetry } from '../../lib/db-retry.js';
 import { validateParams, validateQuery } from '../../middleware/validate.js';
 import { studyGroupListQuerySchema } from '../study-groups/study-group.schema.js';
 import { orderStudyGroups, studyGroupInclude, toStudyGroup } from '../study-groups/study-group.view.js';
@@ -15,10 +16,10 @@ router.get('/', validateQuery(subjectListQuerySchema), async (request, response,
   try {
     const { limit, offset, sort, order, category } = validatedQuery<ReturnType<typeof subjectListQuerySchema.parse>>(response);
     const where = category ? { category } : {};
-    const [subjects, total] = await Promise.all([
+    const [subjects, total] = await withPrismaRetry(() => Promise.all([
       prisma.subject.findMany({ where, select: subjectSelect, orderBy: [{ [sort]: order }, { id: 'asc' }], skip: offset, take: limit }),
       prisma.subject.count({ where }),
-    ]);
+    ]));
     response.json({ data: subjects, meta: listMeta(total, limit, offset) });
   } catch (error) {
     next(error);
@@ -31,11 +32,11 @@ router.get('/:id/study-groups', validateParams(subjectIdParamsSchema), validateQ
     const subject = await prisma.subject.findUnique({ where: { id }, select: { id: true } });
     if (!subject) throw notFound('Subject');
     const { limit, offset, sort, order, hasSpace } = validatedQuery<ReturnType<typeof studyGroupListQuerySchema.parse>>(response);
-    const groups = await prisma.studyGroup.findMany({
+    const groups = await withPrismaRetry(() => prisma.studyGroup.findMany({
       where: { subjectId: id },
       include: studyGroupInclude,
       orderBy: [{ [sort]: order }, { id: 'asc' }],
-    }) as any[];
+    })) as any[];
     const filtered = hasSpace ? groups.filter((group) => group._count.members < group.maxMembers) : groups;
     const ordered = orderStudyGroups(filtered, sort, order);
     response.json({ data: ordered.slice(offset, offset + limit).map(toStudyGroup), meta: listMeta(ordered.length, limit, offset) });

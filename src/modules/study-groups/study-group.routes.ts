@@ -3,6 +3,7 @@ import { prisma } from '../../lib/prisma.js';
 import { listMeta } from '../../lib/pagination.js';
 import { notFound } from '../../lib/errors.js';
 import { validatedParams, validatedQuery } from '../../lib/validated.js';
+import { withPrismaRetry } from '../../lib/db-retry.js';
 import { validateParams, validateQuery } from '../../middleware/validate.js';
 import { studyGroupIdParamsSchema, studyGroupListQuerySchema, studyGroupSessionQuerySchema } from './study-group.schema.js';
 import { orderStudyGroups, studyGroupInclude, toStudyGroup } from './study-group.view.js';
@@ -41,11 +42,11 @@ const sessionWhere = (when?: 'upcoming' | 'past') => {
 router.get('/', validateQuery(studyGroupListQuerySchema), async (request, response, next) => {
   try {
     const { limit, offset, sort, order, subjectId, hasSpace } = validatedQuery<ReturnType<typeof studyGroupListQuerySchema.parse>>(response);
-    const groups = await prisma.studyGroup.findMany({
+    const groups = await withPrismaRetry(() => prisma.studyGroup.findMany({
       where: subjectId ? { subjectId } : {},
       include: studyGroupInclude,
       orderBy: [{ [sort]: order }, { id: 'asc' }],
-    });
+    }));
     const filtered = hasSpace ? groups.filter((group) => group._count.members < group.maxMembers) : groups;
     const ordered = orderStudyGroups(filtered, sort, order);
     response.json({ data: ordered.slice(offset, offset + limit).map(toStudyGroup), meta: listMeta(ordered.length, limit, offset) });
@@ -61,10 +62,10 @@ router.get('/:id/sessions', validateParams(studyGroupIdParamsSchema), validateQu
     if (!group) throw notFound('Study group');
     const { limit, offset, order, status, when, studentId } = validatedQuery<ReturnType<typeof studyGroupSessionQuerySchema.parse>>(response);
     const where = { studyGroupId: id, ...(status ? { status } : {}), ...sessionWhere(when) };
-    const [sessions, total] = await Promise.all([
+    const [sessions, total] = await withPrismaRetry(() => Promise.all([
       prisma.session.findMany({ where, select: sessionSelect, orderBy: [{ startTime: order }, { id: 'asc' }], skip: offset, take: limit }),
       prisma.session.count({ where }),
-    ]);
+    ]));
     response.json({
       data: sessions.map((session) => toSession({ ...session, studyGroup: group }, studentId)),
       meta: listMeta(total, limit, offset),

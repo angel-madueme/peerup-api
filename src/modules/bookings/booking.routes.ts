@@ -1,10 +1,12 @@
 import { Router } from 'express';
 import { Prisma } from '@prisma/client';
+import { config } from '../../config/index.js';
 import { prisma } from '../../lib/prisma.js';
 import { listMeta } from '../../lib/pagination.js';
 import { ApiError, notFound } from '../../lib/errors.js';
 import { makePublicId } from '../../lib/public.js';
 import { validatedBody, validatedParams, validatedQuery } from '../../lib/validated.js';
+import { withPrismaRetry } from '../../lib/db-retry.js';
 import { validateBody, validateParams, validateQuery } from '../../middleware/validate.js';
 import { bookingIdParamsSchema, bookingListQuerySchema, cancelBookingBodySchema, createBookingBodySchema } from './booking.schema.js';
 
@@ -71,10 +73,10 @@ router.get('/', validateQuery(bookingListQuerySchema), async (request, response,
     const orderBy: Prisma.BookingOrderByWithRelationInput[] = sort === 'sessionStartTime'
       ? [{ session: { startTime: order } }, { id: 'asc' }]
       : [{ createdAt: order }, { id: 'asc' }];
-    const [bookings, total] = await Promise.all([
+    const [bookings, total] = await withPrismaRetry(() => Promise.all([
       prisma.booking.findMany({ where, include: bookingInclude, orderBy, skip: offset, take: limit }),
       prisma.booking.count({ where }),
-    ]);
+    ]));
     response.json({ data: bookings.map(toBooking), meta: listMeta(total, limit, offset) });
   } catch (error) {
     next(error);
@@ -84,7 +86,8 @@ router.get('/', validateQuery(bookingListQuerySchema), async (request, response,
 router.post('/', validateBody(createBookingBodySchema), async (request, response, next) => {
   const { studentId, sessionId } = validatedBody<ReturnType<typeof createBookingBodySchema.parse>>(response);
   try {
-    const booking = await prisma.$transaction(async (tx) => {
+    let bookingInsertAttempted = false;
+    const booking = await withPrismaRetry(() => prisma.$transaction(async (tx) => {
       await tx.$queryRaw`SELECT "id" FROM "Session" WHERE "id" = ${sessionId} FOR UPDATE`;
       const [student, session] = await Promise.all([
         tx.student.findUnique({ where: { id: studentId }, select: { id: true } }),
@@ -103,11 +106,12 @@ router.post('/', validateBody(createBookingBodySchema), async (request, response
       const confirmedCount = await tx.booking.count({ where: { sessionId, status: 'confirmed' } });
       if (confirmedCount >= session.studyGroup.maxMembers) throw new ApiError(409, 'SESSION_FULL', 'The session has reached its capacity.');
 
+      bookingInsertAttempted = true;
       return tx.booking.create({
         data: { id: makePublicId(), studentId, sessionId, status: 'confirmed' },
         include: bookingInclude,
       });
-    }, { timeout: 60000 });
+    }, { maxWait: config.dbTransactionMaxWaitMs, timeout: config.dbTransactionTimeoutMs }), () => !bookingInsertAttempted);
 
     response.status(201).json({ data: toBooking(booking) });
   } catch (error) {

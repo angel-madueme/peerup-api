@@ -3,6 +3,7 @@ import { prisma } from '../../lib/prisma.js';
 import { listMeta } from '../../lib/pagination.js';
 import { notFound } from '../../lib/errors.js';
 import { validatedParams, validatedQuery } from '../../lib/validated.js';
+import { withPrismaRetry } from '../../lib/db-retry.js';
 import { validateParams, validateQuery } from '../../middleware/validate.js';
 import { sessionIdParamsSchema, sessionListQuerySchema } from './session.schema.js';
 
@@ -37,10 +38,10 @@ router.get('/', validateQuery(sessionListQuerySchema), async (request, response,
   try {
     const { limit, offset, sort, order, studyGroupId, status, when } = validatedQuery<ReturnType<typeof sessionListQuerySchema.parse>>(response);
     const where = { ...(studyGroupId ? { studyGroupId } : {}), ...(status ? { status } : {}), ...timeWhere(when) };
-    const [sessions, total] = await Promise.all([
+    const [sessions, total] = await withPrismaRetry(() => Promise.all([
       prisma.session.findMany({ where, select: sessionSelect, orderBy: [{ [sort]: order }, { id: 'asc' }], skip: offset, take: limit }),
       prisma.session.count({ where }),
-    ]);
+    ]));
     response.json({ data: sessions.map(toSession), meta: listMeta(total, limit, offset) });
   } catch (error) {
     next(error);

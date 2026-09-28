@@ -220,3 +220,5 @@ Offset pagination is simple for the assignment and makes page counts and `hasMor
 The envelope keeps collection metadata beside the data and gives all errors one predictable shape. Clients can therefore share response handling across resources without guessing whether a response is a bare object, array, or error format.
 
 List queries append an ascending id tiebreaker after the requested sort field. This makes rows with identical sort values deterministic, which prevents offset pagination from repeating or skipping records between requests.
+
+Serverless Postgres providers can suspend idle compute, so the first request after inactivity may encounter a connection or transaction timeout while the database wakes. The API warms the connection at startup, retries transient Prisma connection failures with bounded backoff, and returns `503 SERVICE_UNAVAILABLE` with `Retry-After` when the database remains unavailable.

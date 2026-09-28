@@ -7,6 +7,7 @@ export class ApiError extends Error {
     public readonly status: number,
     public readonly code: string,
     message: string,
+    public readonly retryAfterSeconds?: number,
   ) {
     super(message);
     this.name = 'ApiError';
@@ -31,6 +32,7 @@ export const validationMessage = (error: ZodError, label: 'query parameter' | 'f
 
 export const errorHandler: ErrorRequestHandler = (error, _request, response, _next) => {
   if (error instanceof ApiError) {
+    if (error.status === 503) response.setHeader('Retry-After', error.retryAfterSeconds ?? 1);
     response.status(error.status).json({ error: { code: error.code, message: error.message } });
     return;
   }

@@ -3,6 +3,7 @@ import { prisma } from '../../lib/prisma.js';
 import { listMeta } from '../../lib/pagination.js';
 import { notFound } from '../../lib/errors.js';
 import { validatedParams, validatedQuery } from '../../lib/validated.js';
+import { withPrismaRetry } from '../../lib/db-retry.js';
 import { validateParams, validateQuery } from '../../middleware/validate.js';
 import { studentIdParamsSchema, studentListQuerySchema } from './student.schema.js';
 
@@ -35,10 +36,10 @@ router.get('/', validateQuery(studentListQuerySchema), async (request, response,
       ...(isTutor === undefined ? {} : { isTutor }),
       ...(subjectId ? { studentSubjects: { some: { subjectId } } } : {}),
     };
-    const [students, total] = await Promise.all([
+    const [students, total] = await withPrismaRetry(() => Promise.all([
       prisma.student.findMany({ where, select: studentSelect, orderBy: [{ [sort]: order }, { id: 'asc' }], skip: offset, take: limit }),
       prisma.student.count({ where }),
-    ]);
+    ]));
     response.json({ data: students.map(toStudent), meta: listMeta(total, limit, offset) });
   } catch (error) {
     next(error);
