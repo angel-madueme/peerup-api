@@ -1,0 +1,86 @@
+generator client {
+  provider = "prisma-client-js"
+}
+datasource db {
+  provider = "postgresql"
+  url = env("DATABASE_URL")
+}
+
+model Student {
+  id String @id @db.VarChar(12)
+  name String
+  email String @unique
+  bio String?
+  isTutor Boolean @default(false)
+  createdAt DateTime @default(now())
+  studentSubjects StudentSubject[]
+  groupMembers StudyGroupMember[]
+  bookings Booking[]
+}
+model Subject {
+  id String @id @db.VarChar(12)
+  name String @unique
+  category String
+  studentSubjects StudentSubject[]
+  studyGroups StudyGroup[]
+  @@index([category])
+}
+model StudentSubject {
+  id String @id @db.VarChar(12)
+  studentId String @db.VarChar(12)
+  subjectId String @db.VarChar(12)
+  role String
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  subject Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  @@unique([studentId, subjectId, role])
+  @@index([studentId])
+  @@index([subjectId])
+}
+model StudyGroup {
+  id String @id @db.VarChar(12)
+  name String
+  description String?
+  subjectId String @db.VarChar(12)
+  maxMembers Int
+  createdAt DateTime @default(now())
+  subject Subject @relation(fields: [subjectId], references: [id])
+  members StudyGroupMember[]
+  sessions Session[]
+  @@index([subjectId])
+}
+model StudyGroupMember {
+  id String @id @db.VarChar(12)
+  studyGroupId String @db.VarChar(12)
+  studentId String @db.VarChar(12)
+  joinedAt DateTime @default(now())
+  studyGroup StudyGroup @relation(fields: [studyGroupId], references: [id], onDelete: Cascade)
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  @@unique([studyGroupId, studentId])
+  @@index([studyGroupId])
+  @@index([studentId])
+}
+model Session {
+  id String @id @db.VarChar(12)
+  studyGroupId String @db.VarChar(12)
+  startTime DateTime
+  endTime DateTime
+  locationOrLink String
+  status String
+  studyGroup StudyGroup @relation(fields: [studyGroupId], references: [id], onDelete: Cascade)
+  bookings Booking[]
+  @@index([studyGroupId])
+  @@index([studyGroupId, startTime])
+}
+model Booking {
+  id String @id @db.VarChar(12)
+  studentId String @db.VarChar(12)
+  sessionId String @db.VarChar(12)
+  status String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  session Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  @@index([studentId])
+  @@index([sessionId])
+  @@index([sessionId, status])
+}
