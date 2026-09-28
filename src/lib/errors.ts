@@ -52,5 +52,5 @@ export const errorHandler: ErrorRequestHandler = (error, _request, response, _ne
   }
 
   console.error(error);
-  response.status(500).json({ error: { code: 'INTERNAL_SERVER_ERROR', message: 'An unexpected error occurred.' } });
+  response.status(500).json({ error: { code: 'INTERNAL_ERROR', message: 'An unexpected error occurred.' } });
 };

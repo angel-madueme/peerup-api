@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { prisma } from '../../lib/prisma.js';
 import { listMeta } from '../../lib/pagination.js';
 import { notFound } from '../../lib/errors.js';
+import { validatedParams, validatedQuery } from '../../lib/validated.js';
 import { validateParams, validateQuery } from '../../middleware/validate.js';
 import { sessionIdParamsSchema, sessionListQuerySchema } from './session.schema.js';
 
@@ -34,7 +35,7 @@ const toSession = (session: any) => ({
 
 router.get('/', validateQuery(sessionListQuerySchema), async (request, response, next) => {
   try {
-    const { limit, offset, sort, order, studyGroupId, status, when } = request.query as unknown as ReturnType<typeof sessionListQuerySchema.parse>;
+    const { limit, offset, sort, order, studyGroupId, status, when } = validatedQuery<ReturnType<typeof sessionListQuerySchema.parse>>(response);
     const where = { ...(studyGroupId ? { studyGroupId } : {}), ...(status ? { status } : {}), ...timeWhere(when) };
     const [sessions, total] = await Promise.all([
       prisma.session.findMany({ where, select: sessionSelect, orderBy: { [sort]: order }, skip: offset, take: limit }),
@@ -48,7 +49,7 @@ router.get('/', validateQuery(sessionListQuerySchema), async (request, response,
 
 router.get('/:id', validateParams(sessionIdParamsSchema), async (request, response, next) => {
   try {
-    const id = request.params.id as string;
+    const { id } = validatedParams<ReturnType<typeof sessionIdParamsSchema.parse>>(response);
     const session = await prisma.session.findUnique({ where: { id }, select: sessionSelect });
     if (!session) throw notFound('Session');
     response.json({ data: toSession(session) });

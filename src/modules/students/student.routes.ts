@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { prisma } from '../../lib/prisma.js';
 import { listMeta } from '../../lib/pagination.js';
 import { notFound } from '../../lib/errors.js';
+import { validatedParams, validatedQuery } from '../../lib/validated.js';
 import { validateParams, validateQuery } from '../../middleware/validate.js';
 import { studentIdParamsSchema, studentListQuerySchema } from './student.schema.js';
 
@@ -29,7 +30,7 @@ const toStudent = (student: any) => ({
 
 router.get('/', validateQuery(studentListQuerySchema), async (request, response, next) => {
   try {
-    const { limit, offset, sort, order, isTutor, subjectId } = request.query as unknown as ReturnType<typeof studentListQuerySchema.parse>;
+    const { limit, offset, sort, order, isTutor, subjectId } = validatedQuery<ReturnType<typeof studentListQuerySchema.parse>>(response);
     const where = {
       ...(isTutor === undefined ? {} : { isTutor }),
       ...(subjectId ? { studentSubjects: { some: { subjectId } } } : {}),
@@ -46,7 +47,7 @@ router.get('/', validateQuery(studentListQuerySchema), async (request, response,
 
 router.get('/:id', validateParams(studentIdParamsSchema), async (request, response, next) => {
   try {
-    const id = request.params.id as string;
+    const { id } = validatedParams<ReturnType<typeof studentIdParamsSchema.parse>>(response);
     const student = await prisma.student.findUnique({ where: { id }, select: studentSelect });
     if (!student) throw notFound('Student');
     response.json({ data: toStudent(student) });

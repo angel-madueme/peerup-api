@@ -2,29 +2,41 @@ import type { NextFunction, Request, RequestHandler, Response } from 'express';
 import { ZodError, type ZodType } from 'zod';
 import { ApiError, validationMessage } from '../lib/errors.js';
 
-export const validateQuery = <T>(schema: ZodType<T>): RequestHandler => (request, _response, next) => {
+export const validateQuery = <T>(schema: ZodType<T>): RequestHandler => (request, response, next) => {
   try {
-    request.query = schema.parse(request.query) as typeof request.query;
+    response.locals.query = schema.parse(request.query) as T;
     next();
   } catch (error) {
-    next(new ApiError(400, 'INVALID_QUERY', error instanceof ZodError ? validationMessage(error, 'query parameter') : 'Invalid query parameters.'));
+    if (error instanceof ZodError) {
+      next(new ApiError(400, 'INVALID_QUERY', validationMessage(error, 'query parameter')));
+      return;
+    }
+    next(error);
   }
 };
 
-export const validateBody = <T>(schema: ZodType<T>): RequestHandler => (request, _response, next) => {
+export const validateBody = <T>(schema: ZodType<T>): RequestHandler => (request, response, next) => {
   try {
-    request.body = schema.parse(request.body) as typeof request.body;
+    response.locals.body = schema.parse(request.body) as T;
     next();
   } catch (error) {
-    next(new ApiError(422, 'VALIDATION_ERROR', error instanceof ZodError ? validationMessage(error) : 'Invalid request body.'));
+    if (error instanceof ZodError) {
+      next(new ApiError(422, 'VALIDATION_ERROR', validationMessage(error)));
+      return;
+    }
+    next(error);
   }
 };
 
-export const validateParams = <T>(schema: ZodType<T>): RequestHandler => (request: Request, _response: Response, next: NextFunction) => {
+export const validateParams = <T>(schema: ZodType<T>): RequestHandler => (request: Request, response: Response, next: NextFunction) => {
   try {
-    request.params = schema.parse(request.params) as typeof request.params;
+    response.locals.params = schema.parse(request.params) as T;
     next();
-  } catch {
-    next(new ApiError(404, 'NOT_FOUND', 'The requested resource was not found.'));
+  } catch (error) {
+    if (error instanceof ZodError) {
+      next(new ApiError(404, 'NOT_FOUND', 'The requested resource was not found.'));
+      return;
+    }
+    next(error);
   }
 };

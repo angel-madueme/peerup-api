@@ -4,6 +4,7 @@ import { prisma } from '../../lib/prisma.js';
 import { listMeta } from '../../lib/pagination.js';
 import { ApiError, notFound } from '../../lib/errors.js';
 import { makePublicId } from '../../lib/public.js';
+import { validatedBody, validatedParams, validatedQuery } from '../../lib/validated.js';
 import { validateBody, validateParams, validateQuery } from '../../middleware/validate.js';
 import { bookingIdParamsSchema, bookingListQuerySchema, cancelBookingBodySchema, createBookingBodySchema } from './booking.schema.js';
 
@@ -65,7 +66,7 @@ const bookingWhere = (studentId?: string, status?: 'confirmed' | 'cancelled', wh
 
 router.get('/', validateQuery(bookingListQuerySchema), async (request, response, next) => {
   try {
-    const { limit, offset, sort, order, studentId, status, when } = request.query as unknown as ReturnType<typeof bookingListQuerySchema.parse>;
+    const { limit, offset, sort, order, studentId, status, when } = validatedQuery<ReturnType<typeof bookingListQuerySchema.parse>>(response);
     const where = bookingWhere(studentId, status, when);
     const orderBy = sort === 'sessionStartTime' ? { session: { startTime: order } } : { createdAt: order };
     const [bookings, total] = await Promise.all([
@@ -79,7 +80,7 @@ router.get('/', validateQuery(bookingListQuerySchema), async (request, response,
 });
 
 router.post('/', validateBody(createBookingBodySchema), async (request, response, next) => {
-  const { studentId, sessionId } = request.body as ReturnType<typeof createBookingBodySchema.parse>;
+  const { studentId, sessionId } = validatedBody<ReturnType<typeof createBookingBodySchema.parse>>(response);
   try {
     const booking = await prisma.$transaction(async (tx) => {
       await tx.$queryRaw`SELECT "id" FROM "Session" WHERE "id" = ${sessionId} FOR UPDATE`;
@@ -118,7 +119,7 @@ router.post('/', validateBody(createBookingBodySchema), async (request, response
 
 router.get('/:id', validateParams(bookingIdParamsSchema), async (request, response, next) => {
   try {
-    const id = request.params.id as string;
+    const { id } = validatedParams<ReturnType<typeof bookingIdParamsSchema.parse>>(response);
     const booking = await prisma.booking.findUnique({ where: { id }, include: bookingInclude });
     if (!booking) throw notFound('Booking');
     response.json({ data: toBooking(booking) });
@@ -129,7 +130,7 @@ router.get('/:id', validateParams(bookingIdParamsSchema), async (request, respon
 
 router.patch('/:id', validateParams(bookingIdParamsSchema), validateBody(cancelBookingBodySchema), async (request, response, next) => {
   try {
-    const id = request.params.id as string;
+    const { id } = validatedParams<ReturnType<typeof bookingIdParamsSchema.parse>>(response);
     const current = await prisma.booking.findUnique({ where: { id }, include: bookingInclude });
     if (!current) throw notFound('Booking');
     const booking = current.status === 'cancelled'
@@ -144,7 +145,7 @@ router.patch('/:id', validateParams(bookingIdParamsSchema), validateBody(cancelB
 router.delete('/:id', validateParams(bookingIdParamsSchema), async (request, response, next) => {
   try {
     // DELETE is available for the brief; the app uses PATCH for cancellation instead.
-    const id = request.params.id as string;
+    const { id } = validatedParams<ReturnType<typeof bookingIdParamsSchema.parse>>(response);
     await prisma.booking.delete({ where: { id } });
     response.status(204).send();
   } catch (error) {
