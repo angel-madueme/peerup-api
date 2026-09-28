@@ -12,7 +12,6 @@ app.set('trust proxy', true);
 app.use(express.json());
 app.use(rateLimit);
 
-app.get('/api/v1/health', (_request, response) => response.json({ data: { status: 'ok' } }));
 app.use('/api/v1/students', studentRouter);
 app.use('/api/v1/subjects', subjectRouter);
 app.use('/api/v1/study-groups', studyGroupRouter);
