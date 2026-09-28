@@ -6,11 +6,10 @@ Peerup is a peer study-group and tutoring matcher API. The API is served under `
 
 ```bash
 npm install
-npm run build
-npm start
+npm run dev
 ```
 
-The server listens on `http://localhost:3000` by default. The database connection is read from `DATABASE_URL`.
+The development server listens on `http://localhost:3000` by default and loads local environment variables from `.env`. For a deployed server, set `DATABASE_URL` in the hosting provider's environment; production uses the existing `npm start` command without `--env-file`.
 
 ## Response and query conventions
 
