@@ -1,0 +1,34 @@
+{
+  "name": "peerup-api",
+  "version": "1.0.0",
+  "description": "Peerup peer study group and tutoring matcher API",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "npm run build && node --watch dist/src/server.js",
+    "start": "node dist/src/server.js",
+    "build": "tsc",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:seed": "tsx prisma/seed.ts",
+    "test": "echo \"No tests configured yet\""
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "type": "module",
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.2",
+    "tsx": "^4.23.13",
+    "typescript": "^7.0.2"
+  },
+  "dependencies": {
+    "@faker-js/faker": "^10.6.0",
+    "@prisma/client": "^6.19.3",
+    "dotenv": "^18.0.4",
+    "nanoid": "^6.0.1",
+    "prisma": "^6.19.3"
+  }
+}
