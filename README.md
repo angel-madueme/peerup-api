@@ -9,7 +9,7 @@ npm install
 npm run dev
 ```
 
-The development server listens on `http://localhost:3000` by default and loads local environment variables from `.env`. Set `CORS_ORIGINS` to a comma-separated list of browser origins, or leave it as `*` for the default. For a deployed server, set `DATABASE_URL` and `CORS_ORIGINS` in the hosting provider's environment; production uses the existing `npm start` command without `--env-file`.
+The development server listens on `http://localhost:3000` by default and loads local environment variables from `.env`. Set `CORS_ORIGINS` to a comma-separated list of browser origins, or leave it as `*` for the default. On Render, set `DATABASE_URL`, `NODE_ENV=production`, and `TRUST_PROXY=3` in the service environment. Also set `CORS_ORIGINS` there as needed; production uses the existing `npm start` command without `--env-file`.
 
 ## Response and query conventions
 
@@ -222,3 +222,7 @@ The envelope keeps collection metadata beside the data and gives all errors one 
 List queries append an ascending id tiebreaker after the requested sort field. This makes rows with identical sort values deterministic, which prevents offset pagination from repeating or skipping records between requests.
 
 Serverless Postgres providers can suspend idle compute, so the first request after inactivity may encounter a connection or transaction timeout while the database wakes. The API warms the connection at startup, retries transient Prisma connection failures with bounded backoff, and returns `503 SERVICE_UNAVAILABLE` with `Retry-After` when the database remains unavailable.
+
+### Rate limiting behind proxies
+
+With the default `TRUST_PROXY=1`, the limiter never tripped on the live host because the request IP was a proxy address that changed between requests. Setting `TRUST_PROXY=3` on Render fixed it. The hop count depends on the hosting setup, so it lives in configuration rather than in a handler.
