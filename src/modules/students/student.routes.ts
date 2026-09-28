@@ -46,7 +46,8 @@ router.get('/', validateQuery(studentListQuerySchema), async (request, response,
 
 router.get('/:id', validateParams(studentIdParamsSchema), async (request, response, next) => {
   try {
-    const student = await prisma.student.findUnique({ where: { id: request.params.id }, select: studentSelect });
+    const id = request.params.id as string;
+    const student = await prisma.student.findUnique({ where: { id }, select: studentSelect });
     if (!student) throw notFound('Student');
     response.json({ data: toStudent(student) });
   } catch (error) {

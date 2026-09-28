@@ -48,7 +48,8 @@ router.get('/', validateQuery(sessionListQuerySchema), async (request, response,
 
 router.get('/:id', validateParams(sessionIdParamsSchema), async (request, response, next) => {
   try {
-    const session = await prisma.session.findUnique({ where: { id: request.params.id }, select: sessionSelect });
+    const id = request.params.id as string;
+    const session = await prisma.session.findUnique({ where: { id }, select: sessionSelect });
     if (!session) throw notFound('Session');
     response.json({ data: toSession(session) });
   } catch (error) {

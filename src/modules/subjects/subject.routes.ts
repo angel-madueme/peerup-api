@@ -26,14 +26,15 @@ router.get('/', validateQuery(subjectListQuerySchema), async (request, response,
 
 router.get('/:id/study-groups', validateParams(subjectIdParamsSchema), validateQuery(studyGroupListQuerySchema), async (request, response, next) => {
   try {
-    const subject = await prisma.subject.findUnique({ where: { id: request.params.id }, select: { id: true } });
+    const id = request.params.id as string;
+    const subject = await prisma.subject.findUnique({ where: { id }, select: { id: true } });
     if (!subject) throw notFound('Subject');
     const { limit, offset, sort, order, hasSpace } = request.query as unknown as ReturnType<typeof studyGroupListQuerySchema.parse>;
     const groups = await prisma.studyGroup.findMany({
-      where: { subjectId: request.params.id },
+      where: { subjectId: id },
       include: studyGroupInclude,
       orderBy: { [sort]: order },
-    });
+    }) as any[];
     const filtered = hasSpace ? groups.filter((group) => group._count.members < group.maxMembers) : groups;
     response.json({ data: filtered.slice(offset, offset + limit).map(toStudyGroup), meta: listMeta(filtered.length, limit, offset) });
   } catch (error) {
@@ -43,7 +44,8 @@ router.get('/:id/study-groups', validateParams(subjectIdParamsSchema), validateQ
 
 router.get('/:id', validateParams(subjectIdParamsSchema), async (request, response, next) => {
   try {
-    const subject = await prisma.subject.findUnique({ where: { id: request.params.id }, select: subjectSelect });
+    const id = request.params.id as string;
+    const subject = await prisma.subject.findUnique({ where: { id }, select: subjectSelect });
     if (!subject) throw notFound('Subject');
     response.json({ data: subject });
   } catch (error) {

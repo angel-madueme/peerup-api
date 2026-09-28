@@ -118,7 +118,8 @@ router.post('/', validateBody(createBookingBodySchema), async (request, response
 
 router.get('/:id', validateParams(bookingIdParamsSchema), async (request, response, next) => {
   try {
-    const booking = await prisma.booking.findUnique({ where: { id: request.params.id }, include: bookingInclude });
+    const id = request.params.id as string;
+    const booking = await prisma.booking.findUnique({ where: { id }, include: bookingInclude });
     if (!booking) throw notFound('Booking');
     response.json({ data: toBooking(booking) });
   } catch (error) {
@@ -128,11 +129,12 @@ router.get('/:id', validateParams(bookingIdParamsSchema), async (request, respon
 
 router.patch('/:id', validateParams(bookingIdParamsSchema), validateBody(cancelBookingBodySchema), async (request, response, next) => {
   try {
-    const current = await prisma.booking.findUnique({ where: { id: request.params.id }, include: bookingInclude });
+    const id = request.params.id as string;
+    const current = await prisma.booking.findUnique({ where: { id }, include: bookingInclude });
     if (!current) throw notFound('Booking');
     const booking = current.status === 'cancelled'
       ? current
-      : await prisma.booking.update({ where: { id: request.params.id }, data: { status: 'cancelled' }, include: bookingInclude });
+      : await prisma.booking.update({ where: { id }, data: { status: 'cancelled' }, include: bookingInclude });
     response.json({ data: toBooking(booking) });
   } catch (error) {
     next(error);
@@ -142,7 +144,8 @@ router.patch('/:id', validateParams(bookingIdParamsSchema), validateBody(cancelB
 router.delete('/:id', validateParams(bookingIdParamsSchema), async (request, response, next) => {
   try {
     // DELETE is available for the brief; the app uses PATCH for cancellation instead.
-    await prisma.booking.delete({ where: { id: request.params.id } });
+    const id = request.params.id as string;
+    await prisma.booking.delete({ where: { id } });
     response.status(204).send();
   } catch (error) {
     next(error);

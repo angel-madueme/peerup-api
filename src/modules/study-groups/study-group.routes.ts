@@ -54,10 +54,11 @@ router.get('/', validateQuery(studyGroupListQuerySchema), async (request, respon
 
 router.get('/:id/sessions', validateParams(studyGroupIdParamsSchema), validateQuery(studyGroupSessionQuerySchema), async (request, response, next) => {
   try {
-    const group = await prisma.studyGroup.findUnique({ where: { id: request.params.id }, select: { id: true, maxMembers: true } });
+    const id = request.params.id as string;
+    const group = await prisma.studyGroup.findUnique({ where: { id }, select: { id: true, maxMembers: true } });
     if (!group) throw notFound('Study group');
     const { limit, offset, order, status, when, studentId } = request.query as unknown as ReturnType<typeof studyGroupSessionQuerySchema.parse>;
-    const where = { studyGroupId: request.params.id, ...(status ? { status } : {}), ...sessionWhere(when) };
+    const where = { studyGroupId: id, ...(status ? { status } : {}), ...sessionWhere(when) };
     const [sessions, total] = await Promise.all([
       prisma.session.findMany({ where, select: sessionSelect, orderBy: { startTime: order }, skip: offset, take: limit }),
       prisma.session.count({ where }),
@@ -73,7 +74,8 @@ router.get('/:id/sessions', validateParams(studyGroupIdParamsSchema), validateQu
 
 router.get('/:id', validateParams(studyGroupIdParamsSchema), async (request, response, next) => {
   try {
-    const group = await prisma.studyGroup.findUnique({ where: { id: request.params.id }, include: studyGroupInclude });
+    const id = request.params.id as string;
+    const group = await prisma.studyGroup.findUnique({ where: { id }, include: studyGroupInclude });
     if (!group) throw notFound('Study group');
     response.json({ data: toStudyGroup(group) });
   } catch (error) {
