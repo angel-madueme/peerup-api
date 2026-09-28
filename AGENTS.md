@@ -76,6 +76,7 @@ Every API response must strictly follow these structural shapes without deviatio
 - `400 Bad Request`: Invalid request parameters (e.g., negative offset, unsupported sort parameter).
 - `404 Not Found`: Requested resource does not exist.
 - `422 Unprocessable Entity`: Missing or invalid fields. The error message **must specifically name** the failing field(s).
+- `409 Conflict`: Conflict states such as `SESSION_FULL`, `ALREADY_BOOKED`, and `SESSION_NOT_BOOKABLE`.
 - `429 Too Many Requests`: Rate limit exceeded. Must include a `Retry-After` header.
 - `500 Internal Server Error`: Unexpected server faults only. Never return `500` for client input errors.
 
@@ -94,6 +95,25 @@ Every API response must strictly follow these structural shapes without deviatio
 - Keyed by client IP address.
 - Default limit: **100 requests per minute**.
 - Must be configurable via a central config file/environment variable — never hardcoded within middleware or route handlers.
+
+### 3.8 In-Scope Endpoints
+- `GET /api/v1/students`
+- `GET /api/v1/students/:id`
+- `GET /api/v1/subjects`
+- `GET /api/v1/subjects/:id`
+- `GET /api/v1/subjects/:id/study-groups`
+- `GET /api/v1/study-groups`
+- `GET /api/v1/study-groups/:id`
+- `GET /api/v1/study-groups/:id/sessions`
+- `GET /api/v1/sessions`
+- `GET /api/v1/sessions/:id`
+- `GET /api/v1/bookings`
+- `POST /api/v1/bookings`
+- `GET /api/v1/bookings/:id`
+- `PATCH /api/v1/bookings/:id`
+- `DELETE /api/v1/bookings/:id`
+
+Anything not listed above is out of scope.
 
 ---
 
