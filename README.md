@@ -9,7 +9,7 @@ npm install
 npm run dev
 ```
 
-The development server listens on `http://localhost:3000` by default and loads local environment variables from `.env`. For a deployed server, set `DATABASE_URL` in the hosting provider's environment; production uses the existing `npm start` command without `--env-file`.
+The development server listens on `http://localhost:3000` by default and loads local environment variables from `.env`. Set `CORS_ORIGINS` to a comma-separated list of browser origins, or leave it as `*` for the default. For a deployed server, set `DATABASE_URL` and `CORS_ORIGINS` in the hosting provider's environment; production uses the existing `npm start` command without `--env-file`.
 
 ## Response and query conventions
 

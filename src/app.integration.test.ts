@@ -13,6 +13,7 @@ const prismaMock = vi.hoisted(() => ({
 
 vi.mock('./lib/prisma.js', () => ({ prisma: prismaMock }));
 
+process.env.NODE_ENV = 'production';
 const { app } = await import('./app.js');
 
 const listRoutes = [
@@ -68,6 +69,25 @@ describe('Peerup HTTP middleware and list endpoints', () => {
 
     await request(app).get('/api/v1/bookings');
     expect(prismaMock.booking.findMany).toHaveBeenCalledWith(expect.objectContaining({ orderBy: [{ createdAt: 'asc' }, { id: 'asc' }] }));
+  });
+
+  it('sets CORS headers for browser requests and handles preflight', async () => {
+    const response = await request(app)
+      .get('/api/v1/subjects')
+      .set('Origin', 'https://consumer.example');
+    expect(response.headers['access-control-allow-origin']).toBe('*');
+
+    const preflight = await request(app)
+      .options('/api/v1/subjects')
+      .set('Origin', 'https://consumer.example')
+      .set('Access-Control-Request-Method', 'GET');
+    expect(preflight.status).toBe(204);
+    expect(preflight.headers['access-control-allow-methods']).toContain('GET');
+    expect(preflight.headers['access-control-expose-headers']).toContain('Retry-After');
+  });
+
+  it('trusts one proxy hop in production', () => {
+    expect(app.get('trust proxy')).toBe(1);
   });
 
   it('adds an id tiebreaker to the nested subject study-group list', async () => {

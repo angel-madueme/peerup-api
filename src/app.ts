@@ -1,4 +1,6 @@
 import express from 'express';
+import cors, { type CorsOptions } from 'cors';
+import { config } from './config/index.js';
 import { errorHandler, ApiError } from './lib/errors.js';
 import { rateLimit } from './middleware/rate-limit.js';
 import { studentRouter } from './modules/students/student.routes.js';
@@ -8,7 +10,17 @@ import { sessionRouter } from './modules/sessions/session.routes.js';
 import { bookingRouter } from './modules/bookings/booking.routes.js';
 
 export const app = express();
-app.set('trust proxy', true);
+app.set('trust proxy', config.trustProxy);
+const allowAllOrigins = config.corsOrigins.length === 1 && config.corsOrigins[0] === '*';
+const corsOptions: CorsOptions = {
+  origin: allowAllOrigins
+    ? '*'
+    : (origin, callback) => callback(null, !origin || config.corsOrigins.includes(origin)),
+  methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
+  exposedHeaders: ['Retry-After'],
+  optionsSuccessStatus: 204,
+};
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(rateLimit);
 

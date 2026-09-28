@@ -4,6 +4,6 @@ import { prisma } from './lib/prisma.js';
 import { warmUpDatabase } from './lib/db-retry.js';
 
 void warmUpDatabase(() => prisma.$queryRaw`SELECT 1`);
-app.listen(config.port, () => {
+app.listen(config.port, '0.0.0.0', () => {
   console.log(`Peerup API listening on http://localhost:${config.port}`);
 });

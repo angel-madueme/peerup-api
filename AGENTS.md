@@ -115,6 +115,8 @@ Every API response must strictly follow these structural shapes without deviatio
 
 Anything not listed above is out of scope.
 
+Browser consumers are a separate deployment, so CORS configuration is an in-scope deployment concern. Allowed origins must be configurable through `CORS_ORIGINS`.
+
 ---
 
 ## 4. Data Model & Business Rules
