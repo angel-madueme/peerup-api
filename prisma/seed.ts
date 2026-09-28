@@ -74,20 +74,31 @@ async function main() {
     };
   });
 
-  const studyGroupMemberRows = studyGroupRows.flatMap((group) =>
-    pickUnique(studentsBySubject.get(group.subjectId) ?? [], group.maxMembers).map((studentId) => ({
+  const studyGroupMemberRows = studyGroupRows.flatMap((group, index) => {
+    const eligibleStudentIds = studentsBySubject.get(group.subjectId) ?? [];
+    const isFull = index % 4 === 0;
+    const targetCount = isFull
+      ? group.maxMembers
+      : Math.max(1, Math.round(group.maxMembers * (0.4 + (index % 4) * 0.1)));
+    const memberCount = Math.min(targetCount, group.maxMembers, eligibleStudentIds.length);
+
+    return pickUnique(eligibleStudentIds, memberCount).map((studentId) => ({
       id: makeId(),
       studyGroupId: group.id,
       studentId,
-    })),
-  );
+    }));
+  });
 
   const now = new Date();
   const sessionRows = Array.from({ length: 400 }, (_, index) => {
     const group = studyGroupRows[index % studyGroupRows.length];
     const isPast = index < 120;
     const isCancelled = index >= 395;
-    const dayOffset = isPast ? index - 120 : index - 119;
+    const dayOffset = isPast
+      ? index - 120
+      : isCancelled
+        ? 116 + (index - 395)
+        : ((index - 120) % 120) + 1;
     const startTime = new Date(now.getTime() + dayOffset * 86400000);
     startTime.setMinutes(0, 0, 0);
 
