@@ -5,7 +5,7 @@ import { notFound } from '../../lib/errors.js';
 import { validatedParams, validatedQuery } from '../../lib/validated.js';
 import { validateParams, validateQuery } from '../../middleware/validate.js';
 import { studyGroupIdParamsSchema, studyGroupListQuerySchema, studyGroupSessionQuerySchema } from './study-group.schema.js';
-import { studyGroupInclude, toStudyGroup } from './study-group.view.js';
+import { orderStudyGroups, studyGroupInclude, toStudyGroup } from './study-group.view.js';
 
 const router = Router();
 
@@ -44,10 +44,11 @@ router.get('/', validateQuery(studyGroupListQuerySchema), async (request, respon
     const groups = await prisma.studyGroup.findMany({
       where: subjectId ? { subjectId } : {},
       include: studyGroupInclude,
-      orderBy: { [sort]: order },
+      orderBy: [{ [sort]: order }, { id: 'asc' }],
     });
     const filtered = hasSpace ? groups.filter((group) => group._count.members < group.maxMembers) : groups;
-    response.json({ data: filtered.slice(offset, offset + limit).map(toStudyGroup), meta: listMeta(filtered.length, limit, offset) });
+    const ordered = orderStudyGroups(filtered, sort, order);
+    response.json({ data: ordered.slice(offset, offset + limit).map(toStudyGroup), meta: listMeta(ordered.length, limit, offset) });
   } catch (error) {
     next(error);
   }
@@ -61,7 +62,7 @@ router.get('/:id/sessions', validateParams(studyGroupIdParamsSchema), validateQu
     const { limit, offset, order, status, when, studentId } = validatedQuery<ReturnType<typeof studyGroupSessionQuerySchema.parse>>(response);
     const where = { studyGroupId: id, ...(status ? { status } : {}), ...sessionWhere(when) };
     const [sessions, total] = await Promise.all([
-      prisma.session.findMany({ where, select: sessionSelect, orderBy: { startTime: order }, skip: offset, take: limit }),
+      prisma.session.findMany({ where, select: sessionSelect, orderBy: [{ startTime: order }, { id: 'asc' }], skip: offset, take: limit }),
       prisma.session.count({ where }),
     ]);
     response.json({

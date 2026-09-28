@@ -36,7 +36,7 @@ router.get('/', validateQuery(studentListQuerySchema), async (request, response,
       ...(subjectId ? { studentSubjects: { some: { subjectId } } } : {}),
     };
     const [students, total] = await Promise.all([
-      prisma.student.findMany({ where, select: studentSelect, orderBy: { [sort]: order }, skip: offset, take: limit }),
+      prisma.student.findMany({ where, select: studentSelect, orderBy: [{ [sort]: order }, { id: 'asc' }], skip: offset, take: limit }),
       prisma.student.count({ where }),
     ]);
     response.json({ data: students.map(toStudent), meta: listMeta(total, limit, offset) });

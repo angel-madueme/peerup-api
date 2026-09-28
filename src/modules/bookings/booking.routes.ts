@@ -68,7 +68,9 @@ router.get('/', validateQuery(bookingListQuerySchema), async (request, response,
   try {
     const { limit, offset, sort, order, studentId, status, when } = validatedQuery<ReturnType<typeof bookingListQuerySchema.parse>>(response);
     const where = bookingWhere(studentId, status, when);
-    const orderBy = sort === 'sessionStartTime' ? { session: { startTime: order } } : { createdAt: order };
+    const orderBy: Prisma.BookingOrderByWithRelationInput[] = sort === 'sessionStartTime'
+      ? [{ session: { startTime: order } }, { id: 'asc' }]
+      : [{ createdAt: order }, { id: 'asc' }];
     const [bookings, total] = await Promise.all([
       prisma.booking.findMany({ where, include: bookingInclude, orderBy, skip: offset, take: limit }),
       prisma.booking.count({ where }),

@@ -218,3 +218,5 @@ Nanoid identifiers give every public resource a short, non-sequential key. They 
 Offset pagination is simple for the assignment and makes page counts and `hasMore` metadata straightforward. Cursor pagination would be more stable and efficient for rapidly changing or very large lists, but would require opaque cursors, deterministic tie-breakers, and different client navigation semantics.
 
 The envelope keeps collection metadata beside the data and gives all errors one predictable shape. Clients can therefore share response handling across resources without guessing whether a response is a bare object, array, or error format.
+
+List queries append an ascending id tiebreaker after the requested sort field. This makes rows with identical sort values deterministic, which prevents offset pagination from repeating or skipping records between requests.

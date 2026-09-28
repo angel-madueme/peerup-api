@@ -5,7 +5,7 @@ import { notFound } from '../../lib/errors.js';
 import { validatedParams, validatedQuery } from '../../lib/validated.js';
 import { validateParams, validateQuery } from '../../middleware/validate.js';
 import { studyGroupListQuerySchema } from '../study-groups/study-group.schema.js';
-import { studyGroupInclude, toStudyGroup } from '../study-groups/study-group.view.js';
+import { orderStudyGroups, studyGroupInclude, toStudyGroup } from '../study-groups/study-group.view.js';
 import { subjectIdParamsSchema, subjectListQuerySchema } from './subject.schema.js';
 
 const router = Router();
@@ -16,7 +16,7 @@ router.get('/', validateQuery(subjectListQuerySchema), async (request, response,
     const { limit, offset, sort, order, category } = validatedQuery<ReturnType<typeof subjectListQuerySchema.parse>>(response);
     const where = category ? { category } : {};
     const [subjects, total] = await Promise.all([
-      prisma.subject.findMany({ where, select: subjectSelect, orderBy: { [sort]: order }, skip: offset, take: limit }),
+      prisma.subject.findMany({ where, select: subjectSelect, orderBy: [{ [sort]: order }, { id: 'asc' }], skip: offset, take: limit }),
       prisma.subject.count({ where }),
     ]);
     response.json({ data: subjects, meta: listMeta(total, limit, offset) });
@@ -34,10 +34,11 @@ router.get('/:id/study-groups', validateParams(subjectIdParamsSchema), validateQ
     const groups = await prisma.studyGroup.findMany({
       where: { subjectId: id },
       include: studyGroupInclude,
-      orderBy: { [sort]: order },
+      orderBy: [{ [sort]: order }, { id: 'asc' }],
     }) as any[];
     const filtered = hasSpace ? groups.filter((group) => group._count.members < group.maxMembers) : groups;
-    response.json({ data: filtered.slice(offset, offset + limit).map(toStudyGroup), meta: listMeta(filtered.length, limit, offset) });
+    const ordered = orderStudyGroups(filtered, sort, order);
+    response.json({ data: ordered.slice(offset, offset + limit).map(toStudyGroup), meta: listMeta(ordered.length, limit, offset) });
   } catch (error) {
     next(error);
   }

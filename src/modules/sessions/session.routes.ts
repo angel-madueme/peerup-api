@@ -38,7 +38,7 @@ router.get('/', validateQuery(sessionListQuerySchema), async (request, response,
     const { limit, offset, sort, order, studyGroupId, status, when } = validatedQuery<ReturnType<typeof sessionListQuerySchema.parse>>(response);
     const where = { ...(studyGroupId ? { studyGroupId } : {}), ...(status ? { status } : {}), ...timeWhere(when) };
     const [sessions, total] = await Promise.all([
-      prisma.session.findMany({ where, select: sessionSelect, orderBy: { [sort]: order }, skip: offset, take: limit }),
+      prisma.session.findMany({ where, select: sessionSelect, orderBy: [{ [sort]: order }, { id: 'asc' }], skip: offset, take: limit }),
       prisma.session.count({ where }),
     ]);
     response.json({ data: sessions.map(toSession), meta: listMeta(total, limit, offset) });

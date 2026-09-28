@@ -49,6 +49,33 @@ describe('Peerup HTTP middleware and list endpoints', () => {
     expect(response.body.meta).toMatchObject({ limit: 20, offset: 0, total: 0, hasMore: false });
   });
 
+  it('adds an ascending id tiebreaker to every list query', async () => {
+    await request(app).get('/api/v1/students');
+    expect(prismaMock.student.findMany).toHaveBeenCalledWith(expect.objectContaining({ orderBy: [{ createdAt: 'asc' }, { id: 'asc' }] }));
+
+    await request(app).get('/api/v1/subjects');
+    expect(prismaMock.subject.findMany).toHaveBeenCalledWith(expect.objectContaining({ orderBy: [{ name: 'asc' }, { id: 'asc' }] }));
+
+    await request(app).get('/api/v1/study-groups');
+    expect(prismaMock.studyGroup.findMany).toHaveBeenCalledWith(expect.objectContaining({ orderBy: [{ createdAt: 'asc' }, { id: 'asc' }] }));
+
+    prismaMock.studyGroup.findUnique.mockResolvedValue({ id: 'b1c2d3e4f5g6', maxMembers: 8 });
+    await request(app).get('/api/v1/study-groups/b1c2d3e4f5g6/sessions');
+    expect(prismaMock.session.findMany).toHaveBeenCalledWith(expect.objectContaining({ orderBy: [{ startTime: 'asc' }, { id: 'asc' }] }));
+
+    await request(app).get('/api/v1/sessions');
+    expect(prismaMock.session.findMany).toHaveBeenCalledWith(expect.objectContaining({ orderBy: [{ startTime: 'asc' }, { id: 'asc' }] }));
+
+    await request(app).get('/api/v1/bookings');
+    expect(prismaMock.booking.findMany).toHaveBeenCalledWith(expect.objectContaining({ orderBy: [{ createdAt: 'asc' }, { id: 'asc' }] }));
+  });
+
+  it('adds an id tiebreaker to the nested subject study-group list', async () => {
+    prismaMock.subject.findUnique.mockResolvedValue({ id: 'a1b2c3d4e5f6' });
+    await request(app).get('/api/v1/subjects/a1b2c3d4e5f6/study-groups');
+    expect(prismaMock.studyGroup.findMany).toHaveBeenCalledWith(expect.objectContaining({ orderBy: [{ createdAt: 'asc' }, { id: 'asc' }] }));
+  });
+
   it('defaults the subjects list and clamps an oversized limit', async () => {
     const response = await request(app).get('/api/v1/subjects?limit=5000');
     expect(response.status).toBe(200);
