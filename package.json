@@ -7,7 +7,7 @@
     "dev": "npm run build && node --watch dist/src/server.js",
     "start": "node dist/src/server.js",
     "build": "tsc",
-    "lint": "eslint .",
+    "lint": "eslint src eslint.config.js",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:seed": "tsx prisma/seed.ts",
