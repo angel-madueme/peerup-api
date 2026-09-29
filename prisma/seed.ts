@@ -90,6 +90,14 @@ async function main() {
   });
 
   const now = new Date();
+  const sessionTimeSlots = [
+    { hour: 9, minute: 0 },
+    { hour: 11, minute: 0 },
+    { hour: 14, minute: 0 },
+    { hour: 16, minute: 0 },
+    { hour: 18, minute: 0 },
+    { hour: 19, minute: 30 },
+  ];
   const sessionRows = Array.from({ length: 400 }, (_, index) => {
     const group = studyGroupRows[index % studyGroupRows.length];
     const isPast = index < 120;
@@ -99,8 +107,9 @@ async function main() {
       : isCancelled
         ? 116 + (index - 395)
         : ((index - 120) % 120) + 1;
+    const sessionTime = sessionTimeSlots[index % sessionTimeSlots.length];
     const startTime = new Date(now.getTime() + dayOffset * 86400000);
-    startTime.setMinutes(0, 0, 0);
+    startTime.setHours(sessionTime.hour, sessionTime.minute, 0, 0);
 
     return {
       id: makeId(),
