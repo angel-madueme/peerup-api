@@ -89,6 +89,7 @@ async function main() {
     }));
   });
 
+  // Dates are relative to the day the seed runs, so upcoming sessions always stay in the future. Times of day are fixed by the slot list.
   const sessionBaseDate = new Date();
   sessionBaseDate.setUTCHours(0, 0, 0, 0);
   const sessionTimeSlots = [
@@ -108,6 +109,7 @@ async function main() {
       : isCancelled
         ? 116 + (index - 395)
         : ((index - 120) % 120) + 1;
+    // Hour and minute come from the predefined sessionTimeSlots list. The slot changes every 60 sessions, so a study group never repeats a start time on the same day.
     const sessionTime = sessionTimeSlots[Math.floor(index / 60) % sessionTimeSlots.length];
     const startTime = new Date(sessionBaseDate);
     startTime.setUTCDate(startTime.getUTCDate() + dayOffset);
