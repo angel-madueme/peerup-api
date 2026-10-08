@@ -89,7 +89,8 @@ async function main() {
     }));
   });
 
-  const now = new Date();
+  const sessionBaseDate = new Date();
+  sessionBaseDate.setUTCHours(0, 0, 0, 0);
   const sessionTimeSlots = [
     { hour: 9, minute: 0 },
     { hour: 11, minute: 0 },
@@ -107,9 +108,10 @@ async function main() {
       : isCancelled
         ? 116 + (index - 395)
         : ((index - 120) % 120) + 1;
-    const sessionTime = sessionTimeSlots[index % sessionTimeSlots.length];
-    const startTime = new Date(now.getTime() + dayOffset * 86400000);
-    startTime.setHours(sessionTime.hour, sessionTime.minute, 0, 0);
+    const sessionTime = sessionTimeSlots[Math.floor(index / 60) % sessionTimeSlots.length];
+    const startTime = new Date(sessionBaseDate);
+    startTime.setUTCDate(startTime.getUTCDate() + dayOffset);
+    startTime.setUTCHours(sessionTime.hour, sessionTime.minute, 0, 0);
 
     return {
       id: makeId(),
